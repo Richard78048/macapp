@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Hub Apps</title>
+    <style>
+        /* --- ESTILOS GERAIS --- */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body { 
+            font-family: 'Segoe UI', Tahoma, sans-serif; 
+            background-color: #EBEBEB; 
+            height: 100vh; 
+            overflow: hidden; 
+            display: flex; 
+            flex-direction: column; 
+        }
+
+        /* --- BARRA DE TÍTULO CUSTOMIZADA --- */
+        .title-bar { 
+            height: 35px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            -webkit-app-region: drag; /* Permite arrastar a janela */
+            background-color: #EBEBEB;
+        }
+
+        .title-label {
+            padding-left: 15px;
+            font-size: 11px;
+            font-weight: bold;
+            color: #888;
+            letter-spacing: 1px;
+        }
+
+        .window-controls {
+            display: flex;
+            -webkit-app-region: no-drag; /* Botões não são arrastáveis */
+            height: 100%;
+        }
+
+        .control-btn {
+            width: 45px;
+            height: 35px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: background 0.2s;
+            color: #333;
+            font-family: monospace;
+            font-size: 16px;
+        }
+
+        .control-btn:hover { background: rgba(0,0,0,0.1); }
+        .btn-close:hover { background: #E81123 !important; color: white !important; }
+
+        /* --- LAYOUT PRINCIPAL --- */
+        .main-layout { 
+            display: flex; 
+            flex: 1; 
+            height: calc(100vh - 35px); 
+        }
+
+        /* --- SIDEBAR (ÍCONES) --- */
+        .sidebar { 
+            width: 85px; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            padding: 15px 0;
+            gap: 15px;
+        }
+
+        #side-menu-apps {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            width: 100%;
+        }
+
+        .tab-btn { 
+            width: 52px; 
+            height: 52px; 
+            border-radius: 14px; 
+            border: none; 
+            cursor: pointer;
+            background-size: cover; 
+            background-position: center; 
+            background-color: #FFF;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1); 
+            transition: transform 0.2s;
+        }
+        
+        .tab-btn:hover { transform: scale(1.05); }
+        .tab-btn.active { outline: 3px solid #4CAF50; outline-offset: 3px; }
+
+        .sidebar-footer {
+            margin-top: auto;
+            padding-top: 15px;
+            border-top: 1px solid #CCC;
+            width: 50px;
+            display: flex;
+            justify-content: center;
+        }
+
+        /* --- ÁREA DE CONTEÚDO (WEBVIEWS) --- */
+        #content-views { 
+            flex: 1; 
+            margin: 0 20px 20px 0; 
+            display: flex; 
+            position: relative; 
+        }
+
+        webview, .tab-content { 
+            flex: 1; 
+            width: 100%; 
+            height: 100%; 
+            background: #FFF; 
+            border-radius: 24px; 
+            display: none; 
+            overflow: hidden; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+            border: none;
+        }
+
+        .active-view { display: flex !important; flex-direction: column; }
+
+        /* --- PAINEL DE CONFIGURAÇÕES --- */
+        .settings-pane { padding: 40px; overflow-y: auto; }
+        
+        .config-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 25px;
+            margin-top: 20px;
+        }
+
+        .card {
+            background: #fdfdfd;
+            padding: 25px;
+            border-radius: 20px;
+            border: 1px solid #EEE;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .card h3 { font-size: 17px; color: #444; border-bottom: 1px solid #EEE; padding-bottom: 10px; }
+
+        .input-group { display: flex; flex-direction: column; gap: 8px; }
+        input { padding: 12px; border: 1px solid #DDD; border-radius: 10px; outline: none; }
+
+        .btn {
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.2s;
+        }
+        .btn-primary { background: #4CAF50; color: white; }
+        .btn-secondary { background: #607D8B; color: white; }
+
+        .manage-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background: #fff;
+            border-radius: 10px;
+            border: 1px solid #EEE;
+            margin-bottom: 8px;
+        }
+
+        /* --- SWITCH (AUTO-START) --- */
+        .switch-container { display: flex; align-items: center; gap: 12px; }
+        .switch { position: relative; display: inline-block; width: 40px; height: 20px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #ccc; transition: .4s; border-radius: 20px;
+        }
+        .slider:before {
+            position: absolute; content: ""; height: 14px; width: 14px; left: 3px; bottom: 3px;
+            background-color: white; transition: .4s; border-radius: 50%;
+        }
+        input:checked + .slider { background-color: #4CAF50; }
+        input:checked + .slider:before { transform: translateX(20px); }
+    </style>
+</head>
+<body>
+
+    <div class="title-bar">
+        <div class="title-label">APPS</div>
+        <div class="window-controls">
+            <div class="control-btns" onclick="ipcRenderer.send('window-minimize')">－</div>
+            <div class="control-btn" onclick="ipcRenderer.send('window-maximize')">▢</div>
+            <div class="control-btn btn-close" onclick="ipcRenderer.send('window-close')">✕</div>
+        </div>
+    </div>
+
+    <div class="main-layout">
+        <aside class="sidebar">
+            <div id="side-menu-apps"></div>
+            <div class="sidebar-footer">
+                <button onclick="openSettings()" class="tab-btn" style="background:none; box-shadow:none; height: auto;">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                </button>
+            </div>
+        </aside>
+
+        <main id="content-views">
+            <div id="settings-panel" class="tab-content settings-pane">
+                <h1 style="margin-bottom: 20px;">Configurações</h1>
+                <div class="config-grid">
+                    
+                    <div class="card">
+                        <h3>Sistema</h3>
+                        <div class="switch-container">
+                            <label class="switch">
+                                <input type="checkbox" id="chk-autostart">
+                                <span class="slider"></span>
+                            </label>
+                            <span>Iniciar com o Windows</span>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h3>Novo Atalho</h3>
+                        <div class="input-group">
+                            <input type="text" id="new-name" placeholder="Nome do App">
+                            <input type="text" id="new-url" placeholder="URL (https://...)">
+                        </div>
+                        <button class="btn btn-secondary" onclick="pickIcon()">Selecionar Ícone</button>
+                        <button class="btn btn-primary" onclick="addApp()">Salvar Aplicativo</button>
+                    </div>
+
+                    <div class="card">
+                        <h3>Gerenciar Apps</h3>
+                        <div id="app-list"></div>
+                    </div>
+
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const { ipcRenderer } = require('electron');
+        const fs = require('fs');
+        const dbPath = './apps.json';
+        let db = { settings: { autoStart: false }, applications: [] };
+        let tempIconPath = null;
+
+        // User Agent para evitar bloqueio do WhatsApp
+        const CHROME_UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
+
+        function loadDB() {
+            if (fs.existsSync(dbPath)) {
+                db = JSON.parse(fs.readFileSync(dbPath));
+            } else {
+                saveDB();
+            }
+        }
+
+        function saveDB() {
+            fs.writeFileSync(dbPath, JSON.stringify(db, null, 2));
+        }
+
+        function init() {
+            loadDB();
+            const menu = document.getElementById('side-menu-apps');
+            const container = document.getElementById('content-views');
+            
+            // Limpa elementos existentes antes de renderizar
+            menu.innerHTML = '';
+            
+            db.applications.forEach(app => {
+                // Criar Botão da Sidebar
+                const btn = document.createElement('button');
+                btn.className = 'tab-btn';
+                btn.id = `btn-${app.id}`;
+                btn.style.backgroundImage = `url('${app.icon}')`;
+                btn.onclick = () => switchTab(app.id);
+                menu.appendChild(btn);
+
+                // Criar Webview
+                const wv = document.createElement('webview');
+                wv.id = `view-${app.id}`;
+                wv.src = app.url;
+                wv.useragent = CHROME_UA;
+                wv.setAttribute('partition', `persist:${app.id}`);
+                wv.style.display = 'none';
+                container.appendChild(wv);
+            });
+
+            // Configurar Checkbox Auto-Start
+            const chk = document.getElementById('chk-autostart');
+            chk.checked = db.settings.autoStart || false;
+            chk.onchange = (e) => {
+                db.settings.autoStart = e.target.checked;
+                saveDB();
+                ipcRenderer.send('toggle-autostart', e.target.checked);
+            };
+
+            renderManageList();
+        }
+
+        async function pickIcon() {
+            const path = await ipcRenderer.invoke('select-and-copy-icon');
+            if (path) {
+                tempIconPath = path;
+                alert("Ícone selecionado com sucesso!");
+            }
+        }
+
+        function addApp() {
+            const name = document.getElementById('new-name').value;
+            const url = document.getElementById('new-url').value;
+            if (!name || !url) return alert("Preencha todos os campos!");
+
+            const newApp = {
+                id: 'id' + Date.now(),
+                name: name,
+                url: url,
+                icon: tempIconPath || 'assets/default.png'
+            };
+
+            db.applications.push(newApp);
+            saveDB();
+            location.reload(); // Recarrega para aplicar as mudanças
+        }
+
+        function removeApp(id, icon) {
+            if (confirm("Deseja remover este app?")) {
+                ipcRenderer.send('delete-icon-file', icon);
+                db.applications = db.applications.filter(a => a.id !== id);
+                saveDB();
+                location.reload();
+            }
+        }
+
+        function switchTab(id) {
+            document.querySelectorAll('webview, .tab-content').forEach(el => {
+                el.classList.remove('active-view');
+                el.style.display = 'none';
+            });
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+
+            const target = id === 'settings' ? document.getElementById('settings-panel') : document.getElementById(`view-${id}`);
+            if (target) {
+                target.classList.add('active-view');
+                target.style.display = 'flex';
+            }
+            if (id !== 'settings') document.getElementById(`btn-${id}`).classList.add('active');
+        }
+
+        function renderManageList() {
+            const list = document.getElementById('app-list');
+            list.innerHTML = '';
+            db.applications.forEach(app => {
+                const div = document.createElement('div');
+                div.className = 'manage-item';
+                div.innerHTML = `<span>${app.name}</span> <button onclick="removeApp('${app.id}', '${app.icon}')" style="color:red; border:none; background:none; cursor:pointer; font-weight:bold;">✕</button>`;
+                list.appendChild(div);
+            });
+        }
+
+        function openSettings() { switchTab('settings'); }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
